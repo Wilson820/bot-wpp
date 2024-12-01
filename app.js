@@ -28,6 +28,10 @@ const servicios = [
     "Pedicure"
 ];
 
+app.get('/', (req, res) => {
+    res.send('Bot de WhatsApp Business API');
+});
+
 // Webhook verification
 app.get('/webhook', (req, res) => {
     const verify_token = process.env.VERIFY_TOKEN;
