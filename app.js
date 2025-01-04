@@ -293,8 +293,7 @@ app.post('/webhook', async (req, res) => {
         // Informaci n del mensaje
         const phone_number_id = req.body.entry[0].changes[0].value.metadata.phone_number_id; // Identificador del n mero de telfono de WhatsApp Business
         const from = req.body.entry[0].changes[0].value.messages[0].from; // N mero de telfono del usuario que env a el mensaje
-        const msg_body = req.body.entry[0].changes[0].value.messages[0].text.body; // Contenido del mensaje
-
+        
         // Verificar si es una respuesta de botón o un mensaje de texto
         if (req.body.entry[0].changes[0].value.messages[0].type === 'interactive' && req.body.entry[0].changes[0].value.messages[0].interactive.type === 'button_reply') {
             // Manejar respuesta de botón
