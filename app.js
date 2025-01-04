@@ -281,8 +281,6 @@ app.get('/webhook', (req, res) => {
 
 // Webhook for receiving messages
 app.post('/webhook', async (req, res) => {
-    console.log("Mensaje recibido")
-    console.log(req.body.entry[0].changes[0].value.messages[0]);
     if ( ! req.body.object) {
         res.sendStatus(404);
     }
