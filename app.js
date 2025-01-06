@@ -415,15 +415,13 @@ app.post('/webhook', async (req, res) => {
                 case 'buenos dias':
                 case 'buenas tardes':
                 case 'buenas noches':
-                    /**
-                     * "- 'Horarios' para ver los horarios disponibles\n" +
-                        "- 'Servicios' para ver nuestra lista de servicios\n" +
-                        "- 'Agendar' para programar una cita\n" +
-                        "- 'Gestionar cita' para modificar o cancelar tu cita",
-                     */
                     await sendButtons(phone_number_id, from, 
                         "¡Hola! 👋 Bienvenido a nuestro servicio. ¿En qué puedo ayudarte?\n\n" +
-                        "Puedes seleccionar una de las siguientes opciones:", opcionesPrincipales);
+                        "Puedes seleccionar una de las siguientes opciones: "+
+                        "- 'Horarios' para ver los horarios disponibles\n" +
+                        "- 'Servicios' para ver nuestra lista de servicios\n" +
+                        "- 'Agendar' para programar una cita\n" +
+                        "- 'Gestionar cita' para modificar o cancelar tu cita", opcionesPrincipales);
                     break;
 
                 case 'gestionar cita':
@@ -502,28 +500,55 @@ async function sendTextMessage(phone_number_id, to, message) {
  */
 async function sendButtons(phone_number_id, to, message = "Selecciona una opcion", buttonOptions = []) {
     try {
-        await axios({
-            method: 'POST',
-            url: `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`,
-            headers: {
-                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            data: {
-                messaging_product: 'whatsapp',
-                to: to,
-                type: 'interactive',
-                interactive: {
-                    type: 'button',
-                    body: {
-                        text: message
-                    },
-                    action: {
-                        buttons: buttonOptions
+        // Función auxiliar para dividir el array en chunks de tamaño específico
+        const chunkArray = (arr, size) => {
+            return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+                arr.slice(i * size, i * size + size)
+            );
+        };
+
+        // Dividir los botones en grupos de 3
+        const buttonChunks = chunkArray(buttonOptions, 3);
+
+        // Enviar cada grupo de botones como un mensaje separado
+        const responses = await Promise.all(buttonChunks.map(async (buttons, index) => {
+            // Modificar el mensaje para indicar si hay más opciones
+            let messageText = message;
+            if (buttonChunks.length > 1) {
+                messageText += `\n\nOpciones (${index + 1}/${buttonChunks.length})`;
+            }
+
+            const response = await axios({
+                method: 'POST',
+                url: `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`,
+                headers: {
+                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                    'Content-Type': 'application/json',
+                },
+                data: {
+                    messaging_product: 'whatsapp',
+                    to: to,
+                    type: 'interactive',
+                    interactive: {
+                        type: 'button',
+                        body: {
+                            text: message
+                        },
+                        action: {
+                            buttons: buttonOptions
+                        }
                     }
-                }
-            },
-        });
+                },
+            });
+            // Añadir un pequeño delay entre mensajes para evitar límites de rate
+            if (index < buttonChunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            return response.data;
+        }));
+
+        return responses;
     } catch (error) {
         console.error('Error sending buttons:', error);
     }
