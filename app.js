@@ -420,12 +420,7 @@ app.post('/webhook', async (req, res) => {
                 case 'buenas tardes':
                 case 'buenas noches':
                     await sendButtons(phone_number_id, from, 
-                        "¡Hola! 👋 Bienvenido a nuestro servicio. ¿En qué puedo ayudarte?\n\n" +
-                        "Puedes seleccionar una de las siguientes opciones: "+
-                        "- 'Horarios' para ver los horarios disponibles\n" +
-                        "- 'Servicios' para ver nuestra lista de servicios\n" +
-                        "- 'Agendar' para programar una cita\n" +
-                        "- 'Gestionar cita' para modificar o cancelar tu cita", opcionesPrincipales);
+                        "¡Hola! 👋 Bienvenido a nuestro servicio. ¿En qué puedo ayudarte?", opcionesPrincipales);
                     break;
 
                 case 'gestionar cita':
