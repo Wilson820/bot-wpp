@@ -338,7 +338,18 @@ app.post('/webhook', async (req, res) => {
             // Manejar respuesta de botón
             const button_id = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.id;
             
-            if (button_id.startsWith('horario_')) {
+            if(button_id == 'agendar') {
+                const horariosDisponibles = getHorariosDisponibles();
+                await sendButtons(phone_number_id, from, `Selecciona el horario disponible:`,
+                    horariosDisponibles.map((horario, index) => ({
+                        type: 'reply',
+                        reply: {
+                            id: `horario_${index}`,
+                            title: horario
+                        }
+                    }))
+                );
+            }else if (button_id.startsWith('horario_')) {
                 const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
                 await sendButtons(phone_number_id, from, `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
                     servicios.map((servicio, index) => ({
