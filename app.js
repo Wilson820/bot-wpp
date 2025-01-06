@@ -23,10 +23,45 @@ const servicios = [
     "Corte de cabello",
     "Tinte",
     "Peinado",
-    "Tratamiento capilar",
-    "Manicure",
-    "Pedicure"
+    "Trenza",
+    "Manicure tradicional",
+    "Pedicure tradicional",
+    "Limpieza facial",
+    "Pigmentación de cejas",
+    "Pigmentación de labios",
+    "Lifting de pestañas",
+    "Laminado de cejas",
+    "Piel de porcelana",
+    "Depilación con cera",
+    "Depilación con láser"
 ];
+
+const opcionesPrincipales = 
+[{
+    type: 'reply',
+    reply: {
+        id: 'ver_horarios',
+        title: 'Ver horarios'
+    }
+},{
+    type: 'reply',
+    reply: {
+        id: 'ver_servicios',
+        title: 'Ver servicios'
+    }
+},{
+    type: 'reply',
+    reply: {
+        id: 'agendar',
+        title: 'Agendar'
+    }
+},{
+    type: 'reply',
+    reply: {
+        id: 'gestionar_cita',
+        title: 'Gestionar cita'
+    }
+}];
 
 // Objeto para almacenar las citas
 const citas = {};
@@ -90,7 +125,7 @@ async function sendHorariosButtons(phone_number_id, to) {
                                 'Lo siento, no hay horarios disponibles para hoy.')
                     },
                     action: {
-                        buttons: horariosDisponibles.slice(0, 3).map((horario, index) => ({
+                        buttons: horariosDisponibles.map((horario, index) => ({
                             type: 'reply',
                             reply: {
                                 id: `horario_${index}`,
@@ -301,7 +336,15 @@ app.post('/webhook', async (req, res) => {
             
             if (button_id.startsWith('horario_')) {
                 const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
-                await sendServiciosButtons(phone_number_id, from, horarioSeleccionado);
+                await sendButtons(phone_number_id, from, `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
+                    servicios.map((servicio, index) => ({
+                        type: 'reply',
+                        reply: {
+                            id: `servicio_${index}_${horarioSeleccionado}`,
+                            title: servicio
+                        }
+                    }))
+                );
             } 
             else if (button_id.startsWith('servicio_')) {
                 const [, , horarioSeleccionado] = button_id.split('_');
@@ -369,17 +412,18 @@ app.post('/webhook', async (req, res) => {
 
             switch(msg_body.toLowerCase()) {
                 case 'hola':
-                case 'buenos días':
+                case 'buenos dias':
                 case 'buenas tardes':
                 case 'buenas noches':
-                    await sendTextMessage(phone_number_id, from, 
+                    await sendButtons(phone_number_id, from, 
                         "¡Hola! 👋 Bienvenido a nuestro servicio. ¿En qué puedo ayudarte?\n\n" +
-                        "Puedes escribir:\n" +
-                        "- 'horarios' para ver los horarios disponibles\n" +
-                        "- 'servicios' para ver nuestra lista de servicios\n" +
-                        "- 'agendar' para programar una cita\n" +
-                        "- 'gestionar cita' para modificar o cancelar tu cita"
-                    );
+                        "Puedes seleccionar una de las siguientes opciones:\n" +
+                        "- 'Horarios' para ver los horarios disponibles\n" +
+                        "- 'Servicios' para ver nuestra lista de servicios\n" +
+                        "- 'Agendar' para programar una cita\n" +
+                        "- 'Gestionar cita' para modificar o cancelar tu cita",
+                        opcionesPrincipales
+);
                     break;
 
                 case 'gestionar cita':
@@ -406,12 +450,9 @@ app.post('/webhook', async (req, res) => {
                     break;
 
                 default:
-                    await sendTextMessage(phone_number_id, from,
-                        "No entiendo ese mensaje. Por favor, escribe una de las siguientes opciones:\n" +
-                        "- 'horarios'\n" +
-                        "- 'servicios'\n" +
-                        "- 'agendar'\n" +
-                        "- 'gestionar cita'"
+                    await sendButtons(phone_number_id, from,
+                        "No entiendo ese mensaje. Por favor, elige una de las siguientes opciones:",
+                        opcionesPrincipales
                     );
             }
         }
@@ -439,7 +480,27 @@ async function sendTextMessage(phone_number_id, to, message) {
     }
 }
 
-async function sendButtons(phone_number_id, to) {
+/**
+ * 
+ * @param {Number} phone_number_id 
+ * @param {Number} to 
+ * @param {String} message 
+ * @param {Array Object} buttonOptions example: [{
+                                type: 'reply',
+                                reply: {
+                                    id: 'ver_horarios',
+                                    title: 'Ver horarios'
+                                }
+                            },
+                            {
+                                type: 'reply',
+                                reply: {
+                                    id: 'ver_servicios',
+                                    title: 'Ver servicios'
+                                }
+                            }]
+ */
+async function sendButtons(phone_number_id, to, message = "Selecciona una opcion", buttonOptions = []) {
     try {
         await axios({
             method: 'POST',
@@ -455,25 +516,10 @@ async function sendButtons(phone_number_id, to) {
                 interactive: {
                     type: 'button',
                     body: {
-                        text: '¿Qué te gustaría hacer?'
+                        text: message
                     },
                     action: {
-                        buttons: [
-                            {
-                                type: 'reply',
-                                reply: {
-                                    id: 'ver_horarios',
-                                    title: 'Ver horarios'
-                                }
-                            },
-                            {
-                                type: 'reply',
-                                reply: {
-                                    id: 'ver_servicios',
-                                    title: 'Ver servicios'
-                                }
-                            }
-                        ]
+                        buttons: buttonOptions
                     }
                 }
             },
