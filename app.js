@@ -375,12 +375,26 @@ app.post('/webhook', async (req, res) => {
                         `⏰ Hora: ${horarioSeleccionado}\n` +
                         `💇 Servicio: ${servicioSeleccionado}\n\n` +
                         `Te esperamos!\n\n` +
-                        `Si necesitas modificar o cancelar tu cita, escribe 'gestionar cita'.`
+                        `Si necesitas modificar o cancelar tu cita, selecciona 'gestionar cita'.`,
+                        [{
+                            type: 'reply',
+                            reply: {
+                                id: 'gestionar_cita',
+                                title: 'Gestionar cita'
+                            }
+                        }]
                     );
                 } else {
-                    await sendTextMessage(phone_number_id, from,
+                    await sendButtons(phone_number_id, from,
                         `❌ Lo siento, este horario ya no está disponible.\n` +
-                        `Por favor, selecciona otro horario escribiendo 'agendar'.`
+                        `Por favor, selecciona otro horario seleccionando Agendar.`,
+                        [{
+                            type: 'reply',
+                            reply: {
+                                id: 'agendar',
+                                title: 'Agendar'
+                            }
+                        }]
                     );
                 }
             }
@@ -410,15 +424,27 @@ app.post('/webhook', async (req, res) => {
             }
             else if (button_id === 'ver_horarios') {
                 const horariosDisponibles = getHorariosDisponibles();
-                await sendTextMessage(phone_number_id, from, 
-                    "📅 Horarios disponibles para hoy:\n\n" + 
-                    horariosDisponibles.join('\n')
+                await sendButtons(phone_number_id, from, 
+                    "📅 Horarios disponibles para hoy:\n\n",
+                    horariosDisponibles.map((horario, index) => ({
+                        type: 'reply',
+                        reply: {
+                            id: `horario_${index}`,
+                            title: horario
+                        }
+                    }))
                 );
             }
             else if (button_id === 'ver_servicios') {
-                await sendTextMessage(phone_number_id, from,
-                    "✨ Nuestros servicios:\n\n" +
-                    servicios.map((servicio, index) => `${index + 1}. ${servicio}`).join('\n')
+                await sendButtons(phone_number_id, from,
+                    "✨ Nuestros servicios:\n\n" ,
+                    servicios.map((servicio, index) => ({
+                        type: 'reply',
+                        reply: {
+                            id: `servicio_${index}`,
+                            title: servicio
+                        }
+                    }))
                 );
             }
         } else if (req.body.entry[0].changes[0].value.messages[0].type === 'text') {
@@ -525,7 +551,7 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
             // Modificar el mensaje para indicar si hay más opciones
             let messageText = message;
             if (index > 0) {
-                messageText += `\n\nOpciones (${index + 1}/${buttonChunks.length})`;
+                messageText = `Opciones disponibles (${index + 1}/${buttonChunks.length})`;
             }
 
             const response = await axios({
