@@ -524,7 +524,7 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
         const responses = await Promise.all(buttonChunks.map(async (buttons, index) => {
             // Modificar el mensaje para indicar si hay más opciones
             let messageText = message;
-            if (buttonChunks.length > 1) {
+            if (index > 0) {
                 messageText += `\n\nOpciones (${index + 1}/${buttonChunks.length})`;
             }
 
@@ -542,10 +542,10 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
                     interactive: {
                         type: 'button',
                         body: {
-                            text: message
+                            text: messageText
                         },
                         action: {
-                            buttons: buttonOptions
+                            buttons: buttons
                         }
                     }
                 },
