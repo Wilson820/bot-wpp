@@ -36,6 +36,16 @@ const servicios = [
     "Depilación con láser"
 ];
 
+/**
+ * 
+,{
+    type: 'reply',
+    reply: {
+        id: 'gestionar_cita',
+        title: 'Gestionar cita'
+    }
+}
+ */
 const opcionesPrincipales = 
 [{
     type: 'reply',
@@ -54,12 +64,6 @@ const opcionesPrincipales =
     reply: {
         id: 'agendar',
         title: 'Agendar'
-    }
-},{
-    type: 'reply',
-    reply: {
-        id: 'gestionar_cita',
-        title: 'Gestionar cita'
     }
 }];
 
