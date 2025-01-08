@@ -20,10 +20,10 @@ const horarios = [
 
 // Lista de servicios
 const servicios = [
-    "Corte de cabello",
-    "Tinte",
-    "Peinado",
-    "Trenza",
+    // "Corte de cabello",
+    // "Tinte",
+    // "Peinado",
+    // "Trenza",
     "Manicure tradicional",
     "Pedicure tradicional",
     "Limpieza facial",
