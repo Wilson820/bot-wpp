@@ -641,15 +641,16 @@ async function sendListMessage(phone_number_id, to, header, body, footer, button
       interactive: interactive
     };
 
-    const response = await axios.post(
-      `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`, 
-      data, 
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
+    const response = await axios(
+        {
+            method: 'POST',
+            url: `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`,
+            headers: {
+                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            data
         }
-      }
     );
 
     return response.data;
