@@ -436,16 +436,32 @@ app.post('/webhook', async (req, res) => {
                 );
             }
             else if (button_id === 'ver_servicios') {
-                await sendButtons(phone_number_id, from,
-                    "✨ Nuestros servicios:\n\n" ,
-                    servicios.map((servicio, index) => ({
-                        type: 'reply',
-                        reply: {
-                            id: `servicio_${index}`,
-                            title: servicio
-                        }
-                    }))
-                );
+                await sendListMessage(phone_number_id, from,
+                    'Selecciona una opción',
+                    'Por favor seleccione una opcion de la siguiente lista',
+                    'Muchas gracias!',
+                    'Ver la lista',
+                    [
+                      {
+                        title: 'Servicios disponibles',
+                        rows: servicios.map((servicio, index) => ({ 
+                            id: `servicio_${index}`, 
+                            title: servicio, 
+                            description: '' 
+                          }))
+                      }
+                    ]
+                  );
+                // await sendButtons(phone_number_id, from,
+                //     "✨ Nuestros servicios:\n\n" ,
+                //     servicios.map((servicio, index) => ({
+                //         type: 'reply',
+                //         reply: {
+                //             id: `servicio_${index}`,
+                //             title: servicio
+                //         }
+                //     }))
+                // );
             }
         } else if (req.body.entry[0].changes[0].value.messages[0].type === 'text') {
             // Manejar mensaje de texto
@@ -588,6 +604,59 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
     } catch (error) {
         console.error('Error sending buttons:', error);
     }
+}
+
+async function sendListMessage(phone_number_id, to, header, body, footer, buttonText, sections) {
+  try {
+    const interactive = {
+      type: 'list',
+      header: header ? {
+        type: 'text',
+        text: header
+      } : undefined,
+      body: {
+        text: body
+      },
+      footer: footer ? {
+        text: footer
+      } : undefined,
+      action: {
+        button: buttonText,
+        sections: sections.map(section => ({
+          title: section.title,
+          rows: section.rows.map(row => ({
+            id: row.id || crypto.randomUUID(),
+            title: row.title,
+            description: row.description || ''
+          }))
+        }))
+      }
+    };
+
+    const data = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to,
+      type: 'interactive',
+      interactive: interactive
+    };
+
+    const response = await axios.post(
+      `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`, 
+      data, 
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('Error sending list message:', error.response ? error.response.data : error.message);
+    throw error;
+  }
 }
 
 app.listen(port, () => {
