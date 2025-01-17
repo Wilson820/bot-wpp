@@ -20,11 +20,11 @@ const horarios = [
 
 // Lista de servicios
 const servicios = [
-    // "Corte de cabello",
-    // "Tinte",
-    // "Peinado",
-    // "Trenza",
-    // "Quemador de grasa",
+    "Corte de cabello",
+    "Tinte",
+    "Peinado",
+    "Trenza",
+    "Quemador de grasa",
     "Manicure tradicional",
     "Pedicure tradicional",
     "Limpieza facial",
@@ -143,42 +143,6 @@ async function sendHorariosButtons(phone_number_id, to) {
         });
     } catch (error) {
         console.error('Error sending horarios buttons:', error);
-    }
-}
-
-// Función para enviar lista de servicios como botones después de seleccionar horario
-async function sendServiciosButtons(phone_number_id, to, horarioSeleccionado) {
-    try {
-        await axios({
-            method: 'POST',
-            url: `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`,
-            headers: {
-                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            data: {
-                messaging_product: 'whatsapp',
-                to: to,
-                type: 'interactive',
-                interactive: {
-                    type: 'button',
-                    body: {
-                        text: `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`
-                    },
-                    action: {
-                        buttons: servicios.slice(0, 3).map((servicio, index) => ({
-                            type: 'reply',
-                            reply: {
-                                id: `servicio_${index}_${horarioSeleccionado}`,
-                                title: servicio
-                            }
-                        }))
-                    }
-                }
-            },
-        });
-    } catch (error) {
-        console.error('Error sending servicios buttons:', error);
     }
 }
 
@@ -351,25 +315,40 @@ app.post('/webhook', async (req, res) => {
                     }))
                 );
             }else if (button_id.startsWith('horario_')) {
-                const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
-                await sendListMessage(phone_number_id, from,
-                    'Selecciona una opción',
-                    `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
-                    'Si necesitas mas de un servicio, agenda otra cita al finalizar.',
-                    'Ver servicios',
-                    [
-                      {
-                        title: 'Servicios disponibles',
-                        rows: servicios.map((servicio, index) => ({
-                            id: `servicio_${index}_${horarioSeleccionado}`,
-                            title: servicio,
-                            description: ''
-                          }))
-                      }
-                    ]
-                );
+                try {
+                    const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
+                    
+                    listChunks = chunkArray(servicios, 10);
+                    let textDefault = 'Selecciona una opción';
+                    for (let index = 0; index < listChunks.length; index++) {
+                        const listaX10 = listChunks[index];
+                        let arrayServicios = limit10Items(listaX10, 'servicio', horarioSeleccionado);
+                        if(index > 1) {
+                            textDefault = 'Mas servicios disponibles';
+                        }
+                        await sendListMessage(phone_number_id, from,
+                            textDefault,
+                            `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
+                            'Si necesitas mas de un servicio, agenda otra cita al finalizar.',
+                            'Ver servicios',
+                            [
+                              {
+                                title: 'Servicios disponibles',
+                                rows: arrayServicios
+                              }
+                            ]
+                        );
+    
+                        // Añadir un pequeño delay entre mensajes para evitar límites de rate
+                        if (index < listChunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending list horarios_:', error);
+                }
                 
-            } 
+            }
             else if (button_id.startsWith('servicio_')) {
                 const [, , horarioSeleccionado] = button_id.split('_');
                 const servicioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
@@ -445,23 +424,36 @@ app.post('/webhook', async (req, res) => {
                 );
             }
             else if (button_id === 'ver_servicios') {
-                await sendListMessage(phone_number_id, from,
-                    'Selecciona una opción',
-                    'Por favor seleccione una opcion de la siguiente lista',
-                    'Muchas gracias!',
-                    'Ver la lista',
-                    [
-                      {
-                        title: 'Servicios disponibles',
-                        rows: servicios.map((servicio, index) => ({ 
-                            id: `servicio_${index}`, 
-                            title: servicio, 
-                            description: '' 
-                          }))
-                      }
-                    ]
-                  );
-                
+                try {
+                    listChunks = chunkArray(servicios, 10);
+                    let textDefault = 'Selecciona una opción';
+                    for (let index = 0; index < listChunks.length; index++) {
+                        const listaX10 = listChunks[index];
+                        let arrayServicios = limit10Items(listaX10, 'servicio', '');
+                        if(index > 1) {
+                            textDefault = 'Mas servicios disponibles';
+                        }
+                        await sendListMessage(phone_number_id, from,
+                            textDefault,
+                            `Por favor seleccione una opcion de la siguiente lista`,
+                            'Muchas gracias!',
+                            'Ver servicios',
+                            [
+                                {
+                                title: 'Servicios disponibles',
+                                rows: arrayServicios
+                                }
+                            ]
+                        );
+
+                        // Añadir un pequeño delay entre mensajes para evitar límites de rate
+                        if (index < listChunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending list ver_servicios:', error);
+                }
             }
         } else if (req.body.entry[0].changes[0].value.messages[0].type === 'text') {
             // Manejar mensaje de texto
@@ -530,6 +522,13 @@ async function sendTextMessage(phone_number_id, to, message) {
     }
 }
 
+// Función auxiliar para dividir el array en chunks de tamaño específico
+const chunkArray = (arr, size) => {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+        arr.slice(i * size, i * size + size)
+    );
+};
+
 /**
  * 
  * @param {Number} phone_number_id 
@@ -552,12 +551,6 @@ async function sendTextMessage(phone_number_id, to, message) {
  */
 async function sendButtons(phone_number_id, to, message = "Selecciona una opcion", buttonOptions = []) {
     try {
-        // Función auxiliar para dividir el array en chunks de tamaño específico
-        const chunkArray = (arr, size) => {
-            return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
-                arr.slice(i * size, i * size + size)
-            );
-        };
 
         // Dividir los botones en grupos de 3
         const buttonChunks = chunkArray(buttonOptions, 3);
@@ -609,6 +602,25 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
     } catch (error) {
         console.error('Error sending buttons:', error);
     }
+}
+
+/**
+ * Funcion auxiliar para enviar listas de mas de 10 elementos
+ */
+function limit10Items(arrayList, nameList = 'list', informacionAdicional = '') {
+    let rowsList = [];
+    for (let i = 0; i < arrayList.length; i++) {
+        if(i >= 10) {
+            break;
+        }
+        const listItem = arrayList[i];
+        rowsList.push({
+            id: `${nameList}_${i}${informacionAdicional ? '_'+informacionAdicional : ''}`,
+            title: listItem,
+            description: ''
+        });
+    }
+    return rowsList;
 }
 
 async function sendListMessage(phone_number_id, to, header, body, footer, buttonText, sections) {
