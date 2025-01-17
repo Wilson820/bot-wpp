@@ -352,15 +352,23 @@ app.post('/webhook', async (req, res) => {
                 );
             }else if (button_id.startsWith('horario_')) {
                 const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
-                await sendButtons(phone_number_id, from, `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
-                    servicios.map((servicio, index) => ({
-                        type: 'reply',
-                        reply: {
+                await sendListMessage(phone_number_id, from,
+                    'Selecciona una opción',
+                    `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
+                    'Si necesitas mas de un servicio, agenda otra cita al finalizar.',
+                    'Ver servicios',
+                    [
+                      {
+                        title: 'Servicios disponibles',
+                        rows: servicios.map((servicio, index) => ({
                             id: `servicio_${index}_${horarioSeleccionado}`,
-                            title: servicio
-                        }
-                    }))
+                            title: servicio,
+                            description: ''
+                          }))
+                      }
+                    ]
                 );
+                
             } 
             else if (button_id.startsWith('servicio_')) {
                 const [, , horarioSeleccionado] = button_id.split('_');
@@ -453,16 +461,7 @@ app.post('/webhook', async (req, res) => {
                       }
                     ]
                   );
-                // await sendButtons(phone_number_id, from,
-                //     "✨ Nuestros servicios:\n\n" ,
-                //     servicios.map((servicio, index) => ({
-                //         type: 'reply',
-                //         reply: {
-                //             id: `servicio_${index}`,
-                //             title: servicio
-                //         }
-                //     }))
-                // );
+                
             }
         } else if (req.body.entry[0].changes[0].value.messages[0].type === 'text') {
             // Manejar mensaje de texto
