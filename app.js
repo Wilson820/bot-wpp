@@ -323,7 +323,7 @@ app.post('/webhook', async (req, res) => {
                     for (let index = 0; index < listChunks.length; index++) {
                         const listaX10 = listChunks[index];
                         let arrayServicios = limit10Items(listaX10, 'servicio', horarioSeleccionado);
-                        if(index > 1) {
+                        if(index >= 1) {
                             textDefault = 'Mas servicios disponibles';
                         }
                         await sendListMessage(phone_number_id, from,
@@ -430,7 +430,7 @@ app.post('/webhook', async (req, res) => {
                     for (let index = 0; index < listChunks.length; index++) {
                         const listaX10 = listChunks[index];
                         let arrayServicios = limit10Items(listaX10, 'servicio', '');
-                        if(index > 1) {
+                        if(index >= 1) {
                             textDefault = 'Mas servicios disponibles';
                         }
                         await sendListMessage(phone_number_id, from,
