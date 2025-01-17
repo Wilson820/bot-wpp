@@ -24,6 +24,7 @@ const servicios = [
     // "Tinte",
     // "Peinado",
     // "Trenza",
+    // "Quemador de grasa",
     "Manicure tradicional",
     "Pedicure tradicional",
     "Limpieza facial",
@@ -562,12 +563,15 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
         // Dividir los botones en grupos de 3
         const buttonChunks = chunkArray(buttonOptions, 3);
 
-        // Enviar cada grupo de botones como un mensaje separado
-        const responses = await Promise.all(buttonChunks.map(async (buttons, index) => {
+        // Enviar cada grupo de botones de forma secuencial
+        const responses = [];
+        for (let index = 0; index < buttonChunks.length; index++) {
+            const buttons = buttonChunks[index];
+            
             // Modificar el mensaje para indicar si hay más opciones
             let messageText = message;
             if (index > 0) {
-                messageText = `Opciones disponibles (${index + 1}/${buttonChunks.length})`;
+                messageText = ` (Continuación ${index + 1}/${buttonChunks.length})`;
             }
 
             const response = await axios({
@@ -592,13 +596,14 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
                     }
                 },
             });
+
+            responses.push(response.data);
+
             // Añadir un pequeño delay entre mensajes para evitar límites de rate
             if (index < buttonChunks.length - 1) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-
-            return response.data;
-        }));
+        }
 
         return responses;
     } catch (error) {
