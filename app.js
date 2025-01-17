@@ -37,16 +37,6 @@ const servicios = [
     "Depilación con láser"
 ];
 
-/**
- * 
-,{
-    type: 'reply',
-    reply: {
-        id: 'gestionar_cita',
-        title: 'Gestionar cita'
-    }
-}
- */
 const opcionesPrincipales = 
 [{
     type: 'reply',
@@ -305,8 +295,56 @@ app.post('/webhook', async (req, res) => {
         const phone_number_id = req.body.entry[0].changes[0].value.metadata.phone_number_id; // Identificador del n mero de telfono de WhatsApp Business
         const from = req.body.entry[0].changes[0].value.messages[0].from; // N mero de telfono del usuario que env a el mensaje
         
-        // Verificar si es una respuesta de botón o un mensaje de texto
-        if (req.body.entry[0].changes[0].value.messages[0].type === 'interactive' && req.body.entry[0].changes[0].value.messages[0].interactive.type === 'button_reply') {
+        // Verificar si es una respuesta de botón, lista o un mensaje de texto
+        if (req.body.entry[0].changes[0].value.messages[0].type === 'interactive' && req.body.entry[0].changes[0].value.messages[0].interactive.type === 'list_reply'){
+            // Manejar respuesta de lista
+            const list_id = req.body.entry[0].changes[0].value.messages[0].interactive.list_reply.id;
+            if (list_id.startsWith('servicio_')) {
+                const servicioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.list_reply.title;
+                const [, , horarioSeleccionado] = list_id.split('_');
+                
+                const fechaActual = getFechaActual();
+                const citaAgendada = agendarCita(fechaActual, horarioSeleccionado, from, servicioSeleccionado);
+                
+                if (citaAgendada) {
+                    await sendTextMessage(phone_number_id, from,
+                        `✅ ¡Cita agendada con éxito!\n\n` +
+                        `📅 Fecha: ${fechaActual}\n` +
+                        `⏰ Hora: ${horarioSeleccionado}\n` +
+                        `💇 Servicio: ${servicioSeleccionado}\n\n` +
+                        `Te esperamos!`
+                    );
+                    await sendButtons(phone_number_id, from,
+                        `Si necesitas modificar o cancelar tu cita, selecciona una de las siguientes opciones:`,
+                        [{
+                            type: 'reply',
+                            reply: {
+                                id: 'reagendar_cita',
+                                title: 'Reagendar cita'
+                            }
+                        },{
+                            type: 'reply',
+                            reply: {
+                                id: 'cancelar_cita',
+                                title: 'Cancelar cita'
+                            }
+                        }]
+                    );
+                } else {
+                    await sendButtons(phone_number_id, from,
+                        `❌ Lo siento, este horario ya no está disponible.\n` +
+                        `Por favor, selecciona otro horario seleccionando Agendar.`,
+                        [{
+                            type: 'reply',
+                            reply: {
+                                id: 'agendar',
+                                title: 'Agendar'
+                            }
+                        }]
+                    );
+                }
+            }
+        }else if (req.body.entry[0].changes[0].value.messages[0].type === 'interactive' && req.body.entry[0].changes[0].value.messages[0].interactive.type === 'button_reply'){
             // Manejar respuesta de botón
             const button_id = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.id;
             
@@ -377,13 +415,21 @@ app.post('/webhook', async (req, res) => {
                         `📅 Fecha: ${fechaActual}\n` +
                         `⏰ Hora: ${horarioSeleccionado}\n` +
                         `💇 Servicio: ${servicioSeleccionado}\n\n` +
-                        `Te esperamos!\n\n` +
-                        `Si necesitas modificar o cancelar tu cita, selecciona 'gestionar cita'.`,
+                        `Te esperamos!`
+                    );
+                    await sendButtons(phone_number_id, from,
+                        `Si necesitas modificar o cancelar tu cita, selecciona una de las siguientes opciones:`,
                         [{
                             type: 'reply',
                             reply: {
-                                id: 'gestionar_cita',
-                                title: 'Gestionar cita'
+                                id: 'reagendar_cita',
+                                title: 'Reagendar cita'
+                            }
+                        },{
+                            type: 'reply',
+                            reply: {
+                                id: 'cancelar_cita',
+                                title: 'Cancelar cita'
                             }
                         }]
                     );
