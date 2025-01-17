@@ -314,6 +314,62 @@ app.post('/webhook', async (req, res) => {
                         }
                     }))
                 );
+            }else if (button_id === 'ver_horarios') {
+                const horariosDisponibles = getHorariosDisponibles();
+                await sendButtons(phone_number_id, from, 
+                    "📅 Horarios disponibles para hoy:\n\n",
+                    horariosDisponibles.map((horario, index) => ({
+                        type: 'reply',
+                        reply: {
+                            id: `horario_${index}`,
+                            title: horario
+                        }
+                    }))
+                );
+            }else if (button_id === 'ver_servicios') {
+                try {
+                    listChunks = chunkArray(servicios, 10);
+                    let textDefault = 'Selecciona una opción';
+                    for (let index = 0; index < listChunks.length; index++) {
+                        const listaX10 = listChunks[index];
+                        let arrayServicios = limit10Items(listaX10, 'servicio', '');
+                        if(index >= 1) {
+                            textDefault = 'Mas servicios disponibles';
+                        }
+                        await sendListMessage(phone_number_id, from,
+                            textDefault,
+                            `Por favor seleccione una opcion de la siguiente lista`,
+                            'Muchas gracias!',
+                            'Ver servicios',
+                            [
+                                {
+                                title: 'Servicios disponibles',
+                                rows: arrayServicios
+                                }
+                            ]
+                        );
+
+                        // Añadir un pequeño delay entre mensajes para evitar límites de rate
+                        if (index < listChunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error sending list ver_servicios:', error);
+                }
+            }else if (button_id === 'reagendar_cita') {
+                await sendCitasClienteButtons(phone_number_id, from, 'reagendar');
+            }
+            else if (button_id === 'cancelar_cita') {
+                await sendCitasClienteButtons(phone_number_id, from, 'cancelar');
+            }else if (button_id.startsWith('cancelar_cita_')) {
+                const [, , fecha, horario] = button_id.split('_');
+                if (cancelarCita(fecha, horario)) {
+                    await sendTextMessage(phone_number_id, from,
+                        `✅ Tu cita ha sido cancelada exitosamente.\n\n` +
+                        `Si deseas agendar una nueva cita, escribe 'agendar'.`
+                    );
+                }
             }else if (button_id.startsWith('horario_')) {
                 try {
                     const horarioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
@@ -385,23 +441,7 @@ app.post('/webhook', async (req, res) => {
                         }]
                     );
                 }
-            }
-            else if (button_id === 'reagendar_cita') {
-                await sendCitasClienteButtons(phone_number_id, from, 'reagendar');
-            }
-            else if (button_id === 'cancelar_cita') {
-                await sendCitasClienteButtons(phone_number_id, from, 'cancelar');
-            }
-            else if (button_id.startsWith('cancelar_cita_')) {
-                const [, , fecha, horario] = button_id.split('_');
-                if (cancelarCita(fecha, horario)) {
-                    await sendTextMessage(phone_number_id, from,
-                        `✅ Tu cita ha sido cancelada exitosamente.\n\n` +
-                        `Si deseas agendar una nueva cita, escribe 'agendar'.`
-                    );
-                }
-            }
-            else if (button_id.startsWith('reagendar_cita_')) {
+            }else if (button_id.startsWith('reagendar_cita_')) {
                 const [, , fecha, horario] = button_id.split('_');
                 // Guardamos temporalmente el servicio actual
                 const servicioActual = citas[fecha][horario].servicio;
@@ -409,51 +449,6 @@ app.post('/webhook', async (req, res) => {
                 cancelarCita(fecha, horario);
                 // Mostramos los nuevos horarios disponibles
                 await sendHorariosButtons(phone_number_id, from);
-            }
-            else if (button_id === 'ver_horarios') {
-                const horariosDisponibles = getHorariosDisponibles();
-                await sendButtons(phone_number_id, from, 
-                    "📅 Horarios disponibles para hoy:\n\n",
-                    horariosDisponibles.map((horario, index) => ({
-                        type: 'reply',
-                        reply: {
-                            id: `horario_${index}`,
-                            title: horario
-                        }
-                    }))
-                );
-            }
-            else if (button_id === 'ver_servicios') {
-                try {
-                    listChunks = chunkArray(servicios, 10);
-                    let textDefault = 'Selecciona una opción';
-                    for (let index = 0; index < listChunks.length; index++) {
-                        const listaX10 = listChunks[index];
-                        let arrayServicios = limit10Items(listaX10, 'servicio', '');
-                        if(index >= 1) {
-                            textDefault = 'Mas servicios disponibles';
-                        }
-                        await sendListMessage(phone_number_id, from,
-                            textDefault,
-                            `Por favor seleccione una opcion de la siguiente lista`,
-                            'Muchas gracias!',
-                            'Ver servicios',
-                            [
-                                {
-                                title: 'Servicios disponibles',
-                                rows: arrayServicios
-                                }
-                            ]
-                        );
-
-                        // Añadir un pequeño delay entre mensajes para evitar límites de rate
-                        if (index < listChunks.length - 1) {
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error sending list ver_servicios:', error);
-                }
             }
         } else if (req.body.entry[0].changes[0].value.messages[0].type === 'text') {
             // Manejar mensaje de texto
