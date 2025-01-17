@@ -571,7 +571,8 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
             // Modificar el mensaje para indicar si hay más opciones
             let messageText = message;
             if (index > 0) {
-                messageText = ` (Continuación ${index + 1}/${buttonChunks.length})`;
+                // messageText = ` (Continuación ${index + 1}/${buttonChunks.length})`;
+                messageText = ""; // Solo enviar los botones
             }
 
             const response = await axios({
