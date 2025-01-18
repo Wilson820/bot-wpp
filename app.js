@@ -301,10 +301,13 @@ app.post('/webhook', async (req, res) => {
             const list_id = req.body.entry[0].changes[0].value.messages[0].interactive.list_reply.id;
             if (list_id.startsWith('servicio_')) {
                 const servicioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.list_reply.title;
-                const [, , horarioSeleccionado] = list_id.split('_');
+                const [nameList, index, horarioSeleccionado] = list_id.split('_');
                 
                 //Agenda sin seleccionar horario
-                if( ! horarioSeleccionado || horarioSeleccionado == 'undefined') {
+                if( ! horarioSeleccionado || horarioSeleccionado == undefined) {
+                    await sendTextMessage(phone_number_id, from,
+                        `⏰ Para agendar tu cita, selecciona un horario.`
+                    );
                     await sendHorariosButtons(phone_number_id, from);
                     return;
                 }
@@ -564,13 +567,18 @@ async function sendButtons(phone_number_id, to, message = "Selecciona una opcion
  */
 function limit10Items(arrayList, nameList = 'list', informacionAdicional = '') {
     let rowsList = [];
+    const hayInformacionAdicional = informacionAdicional !== '';
+    let informacionAdicionalValida = informacionAdicional;
+    if(hayInformacionAdicional) {
+        informacionAdicionalValida = informacionAdicional;
+    }
     for (let i = 0; i < arrayList.length; i++) {
         if(i >= 10) {
             break;
         }
         const listItem = arrayList[i];
         rowsList.push({
-            id: `${nameList}_${i}${informacionAdicional ? '_'+informacionAdicional : ''}`,
+            id: `${nameList}_${i}_${informacionAdicionalValida}`,
             title: listItem,
             description: ''
         });
