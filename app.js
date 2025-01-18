@@ -303,6 +303,12 @@ app.post('/webhook', async (req, res) => {
                 const servicioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.list_reply.title;
                 const [, , horarioSeleccionado] = list_id.split('_');
                 
+                //Agenda sin seleccionar horario
+                if( ! horarioSeleccionado || horarioSeleccionado == 'undefined') {
+                    await sendHorariosButtons(phone_number_id, from);
+                    return;
+                }
+                
                 const fechaActual = getFechaActual();
                 const citaAgendada = agendarCita(fechaActual, horarioSeleccionado, from, servicioSeleccionado);
                 
@@ -401,51 +407,6 @@ app.post('/webhook', async (req, res) => {
                     console.error('Error sending list horarios_:', error);
                 }
                 
-            }
-            else if (button_id.startsWith('servicio_')) {
-                const [, , horarioSeleccionado] = button_id.split('_');
-                const servicioSeleccionado = req.body.entry[0].changes[0].value.messages[0].interactive.button_reply.title;
-                
-                const fechaActual = getFechaActual();
-                const citaAgendada = agendarCita(fechaActual, horarioSeleccionado, from, servicioSeleccionado);
-                
-                if (citaAgendada) {
-                    await sendTextMessage(phone_number_id, from,
-                        `✅ ¡Cita agendada con éxito!\n\n` +
-                        `📅 Fecha: ${fechaActual}\n` +
-                        `⏰ Hora: ${horarioSeleccionado}\n` +
-                        `💇 Servicio: ${servicioSeleccionado}\n\n` +
-                        `Te esperamos!`
-                    );
-                    await sendButtons(phone_number_id, from,
-                        `Si necesitas modificar o cancelar tu cita, selecciona una de las siguientes opciones:`,
-                        [{
-                            type: 'reply',
-                            reply: {
-                                id: 'reagendar_cita',
-                                title: 'Reagendar cita'
-                            }
-                        },{
-                            type: 'reply',
-                            reply: {
-                                id: 'cancelar_cita',
-                                title: 'Cancelar cita'
-                            }
-                        }]
-                    );
-                } else {
-                    await sendButtons(phone_number_id, from,
-                        `❌ Lo siento, este horario ya no está disponible.\n` +
-                        `Por favor, selecciona otro horario seleccionando Agendar.`,
-                        [{
-                            type: 'reply',
-                            reply: {
-                                id: 'agendar',
-                                title: 'Agendar'
-                            }
-                        }]
-                    );
-                }
             }else if (button_id.startsWith('reagendar_cita_')) {
                 const [, , fecha, horario] = button_id.split('_');
                 // Guardamos temporalmente el servicio actual
