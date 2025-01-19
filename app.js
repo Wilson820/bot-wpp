@@ -10,12 +10,12 @@ app.use(bodyParser.json());
 
 // Horarios disponibles
 const horarios = [
-    "9AM - 10AM",
-    "10AM - 11AM",
-    "11AM - 12PM",
-    "2PM - 3PM",
-    "3PM - 4PM",
-    "4PM - 5PM"
+    "9:00 AM - 10:00 AM",
+    "10:00 AM - 11:00 AM",
+    "11:00 AM - 12:00 PM",
+    "2:00 PM - 3:00 PM",
+    "3:00 PM - 4:00 PM",
+    "4:00 PM - 5:00 PM"
 ];
 
 // Lista de servicios
@@ -219,9 +219,15 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
     const citasCliente = getCitasCliente(to);
     
     if (citasCliente.length === 0) {
-        // PENDIENTE cambiar por boton agendar
-        await sendTextMessage(phone_number_id, to, 
-            "No tienes citas programadas. Escribe 'agendar' si deseas programar una nueva cita."
+        await sendButtons(phone_number_id, to,
+            `❌ No tienes citas programadas.\n Selecciona 'Agendar' si deseas programar una nueva cita.`,
+            [{
+                type: 'reply',
+                reply: {
+                    id: 'agendar',
+                    title: 'Agendar'
+                }
+            }]
         );
         return;
     }
@@ -381,9 +387,16 @@ app.post('/webhook', async (req, res) => {
             }else if (button_id.startsWith('cancelar_cita_')) {
                 const [, , fecha, horario] = button_id.split('_');
                 if (cancelarCita(fecha, horario)) {
-                    await sendTextMessage(phone_number_id, from,
+                    await sendButtons(phone_number_id, from,
                         `✅ Tu cita ha sido cancelada exitosamente.\n\n` +
-                        `Si deseas agendar una nueva cita, escribe 'agendar'.`
+                        `Si deseas agendar una nueva cita, selecciona 'Agendar'.`,
+                        [{
+                            type: 'reply',
+                            reply: {
+                                id: 'agendar',
+                                title: 'Agendar'
+                            }
+                        }]
                     );
                 }
             }else if (button_id.startsWith('horario_')) {
