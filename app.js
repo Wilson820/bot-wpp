@@ -219,6 +219,7 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
     const citasCliente = getCitasCliente(to);
     
     if (citasCliente.length === 0) {
+        // PENDIENTE cambiar por boton agendar
         await sendTextMessage(phone_number_id, to, 
             "No tienes citas programadas. Escribe 'agendar' si deseas programar una nueva cita."
         );
@@ -226,34 +227,16 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
     }
 
     try {
-        await axios({
-            method: 'POST',
-            url: `${process.env.WHATSAPP_API_URL}/${phone_number_id}/messages`,
-            headers: {
-                'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            data: {
-                messaging_product: 'whatsapp',
-                to: to,
-                type: 'interactive',
-                interactive: {
-                    type: 'button',
-                    body: {
-                        text: `Selecciona la cita que deseas ${accion === 'cancelar' ? 'cancelar' : 'reagendar'}:`
-                    },
-                    action: {
-                        buttons: citasCliente.slice(0, 3).map((cita, index) => ({
-                            type: 'reply',
-                            reply: {
-                                id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
-                                title: `${cita.fecha} ${cita.horario}`
-                            }
-                        }))
-                    }
+        await sendButtons(phone_number_id, to, 
+            `Selecciona la cita que deseas ${accion}:`,
+            citasCliente.map((cita, index) => ({
+                type: 'reply',
+                reply: {
+                    id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
+                    title: `${cita.fecha} ${cita.horario}`
                 }
-            },
-        });
+            }))
+        );
     } catch (error) {
         console.error('Error sending citas cliente buttons:', error);
     }
