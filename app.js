@@ -227,16 +227,42 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
     }
 
     try {
-        await sendButtons(phone_number_id, to, 
-            `Selecciona la cita que deseas ${accion}:`,
-            citasCliente.map((cita, index) => ({
-                type: 'reply',
-                reply: {
-                    id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
-                    title: `${cita.fecha} ${cita.horario}`
-                }
-            }))
-        );
+        const citasClienteByDay = citasCliente.reduce((acc, cur) => {
+            const [year, month, day] = cur.fecha.split('-');
+            const fecha = `${month}-${day}`;
+            if (!acc[fecha]) {
+                acc[fecha] = {
+                    year,
+                    fecha,
+                    citas: []
+                };
+            }
+            acc[fecha].citas.push(cur);
+            return acc;
+        }, {});
+        const citasClienteByDayArray = Object.values(citasClienteByDay);
+        for (const dia of citasClienteByDayArray) {
+            await sendButtons(phone_number_id, to, 
+                `Citas programadas para el ${dia.year}-${dia.fecha}:`,
+                dia.citas.map((cita, index) => ({
+                    type: 'reply',
+                    reply: {
+                        id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
+                        title: `${cita.horario}`
+                    }
+                }))
+            );
+        }
+        // await sendButtons(phone_number_id, to, 
+        //     `Selecciona la cita que deseas ${accion}:`,
+        //     citasCliente.map((cita, index) => ({
+        //         type: 'reply',
+        //         reply: {
+        //             id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
+        //             title: `${cita.fecha} ${cita.horario}`
+        //         }
+        //     }))
+        // );
     } catch (error) {
         console.error('Error sending citas cliente buttons:', error);
     }
