@@ -309,6 +309,7 @@ app.post('/webhook', async (req, res) => {
                         `⏰ Para agendar tu cita, selecciona un horario.`
                     );
                     await sendHorariosButtons(phone_number_id, from);
+                    res.sendStatus(200);
                     return;
                 }
                 
