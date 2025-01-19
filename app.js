@@ -391,7 +391,7 @@ app.post('/webhook', async (req, res) => {
                         await sendListMessage(phone_number_id, from,
                             textDefault,
                             `Has seleccionado el horario: ${horarioSeleccionado}\n\nAhora elige el servicio:`,
-                            'Si necesitas mas de un servicio, agenda otra cita al finalizar.',
+                            'Para agregar otro servicio, agenda otra cita al finalizar.',
                             'Ver servicios',
                             [
                               {
