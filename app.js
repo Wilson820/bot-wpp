@@ -2,6 +2,41 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const mongoose = require('mongoose');
+const AgendaModel = require('./models/AgendaModel');
+
+// Conexión a MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
+    retryWrites: true,
+    w: 'majority'
+})
+.then(() => console.log('Conectado a MongoDB Atlas'))
+.catch((error) => {
+    console.error('Error conectando a MongoDB:', error);
+    // Opcional: Implementar una estrategia de reconexión
+    setTimeout(() => {
+        mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+    }, 5000);
+});
+
+// Manejar eventos de conexión
+mongoose.connection.on('disconnected', () => {
+    console.log('Desconectado de MongoDB');
+});
+
+mongoose.connection.on('error', (error) => {
+    console.error('Error de conexión MongoDB:', error);
+});
+
+mongoose.connection.on('reconnected', () => {
+    console.log('Reconectado a MongoDB');
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -78,21 +113,52 @@ function getHorariosDisponibles() {
 }
 
 // Función para agendar una cita
-function agendarCita(fecha, horario, cliente, servicio) {
-    if (!citas[fecha]) {
-        citas[fecha] = {};
-    }
-    
-    if (!citas[fecha][horario]) {
-        citas[fecha][horario] = {
-            cliente,
-            servicio,
-            fecha,
-            horario
-        };
+async function agendarCita(fecha, horario, cliente, servicio) {
+    try {
+        // Verificar si ya existe una cita en ese horario
+        const citaExistente = await AgendaModel.findOne({ fecha, horario });
+        
+        if (citaExistente) {
+          return false;
+        }
+        
+        // Crear nueva cita
+        const nuevaCita = new AgendaModel({
+          cliente,
+          servicio,
+          fecha,
+          horario
+        });
+        
+        await nuevaCita.save();
         return true;
+    } catch (error) {
+        console.error('Error al agendar cita:', error);
+        return false;
     }
-    return false;
+}
+
+
+// Función para buscar citas de un cliente
+async function getCitasCliente(telefono) {
+    try {
+        const citasCliente = await AgendaModel.find({ cliente: telefono });
+        return citasCliente;
+    } catch (error) {
+        console.error('Error al buscar citas:', error);
+        return [];
+    }
+}
+
+// Función para cancelar una cita
+async function cancelarCita(fecha, horario) {
+    try {
+        const resultado = await AgendaModel.deleteOne({ fecha, horario });
+        return resultado.deletedCount > 0;
+    } catch (error) {
+        console.error('Error al cancelar cita:', error);
+        return false;
+    }
 }
 
 // Función para enviar lista de horarios como botones
@@ -143,32 +209,6 @@ async function sendServiciosButtons(phone_number_id, from) {
     }
 }
 
-// Función para buscar citas de un cliente
-function getCitasCliente(telefono) {
-    const citasCliente = [];
-    Object.keys(citas).forEach(fecha => {
-        Object.keys(citas[fecha]).forEach(horario => {
-            if (citas[fecha][horario].cliente === telefono) {
-                citasCliente.push({
-                    ...citas[fecha][horario],
-                    fecha,
-                    horario
-                });
-            }
-        });
-    });
-    return citasCliente;
-}
-
-// Función para cancelar una cita
-function cancelarCita(fecha, horario) {
-    if (citas[fecha] && citas[fecha][horario]) {
-        delete citas[fecha][horario];
-        return true;
-    }
-    return false;
-}
-
 // Función para enviar opciones de gestión de citas
 async function sendGestionCitaButtons(phone_number_id, to) {
     try {
@@ -216,7 +256,7 @@ async function sendGestionCitaButtons(phone_number_id, to) {
 
 // Función para mostrar las citas del cliente como botones para seleccionar
 async function sendCitasClienteButtons(phone_number_id, to, accion) {
-    const citasCliente = getCitasCliente(to);
+    const citasCliente = await getCitasCliente(to);
     
     if (citasCliente.length === 0) {
         await sendButtons(phone_number_id, to,
@@ -234,6 +274,7 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
 
     try {
         const citasClienteByDay = citasCliente.reduce((acc, cur) => {
+            // Usar los campos del documento de Mongoose
             const [year, month, day] = cur.fecha.split('-');
             const fecha = `${month}-${day}`;
             if (!acc[fecha]) {
@@ -246,6 +287,7 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
             acc[fecha].citas.push(cur);
             return acc;
         }, {});
+    
         const citasClienteByDayArray = Object.values(citasClienteByDay);
         for (const dia of citasClienteByDayArray) {
             await sendButtons(phone_number_id, to, 
@@ -253,22 +295,13 @@ async function sendCitasClienteButtons(phone_number_id, to, accion) {
                 dia.citas.map((cita, index) => ({
                     type: 'reply',
                     reply: {
+                        // Usar los campos del documento de Mongoose
                         id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
                         title: `${cita.horario}`
                     }
                 }))
             );
         }
-        // await sendButtons(phone_number_id, to, 
-        //     `Selecciona la cita que deseas ${accion}:`,
-        //     citasCliente.map((cita, index) => ({
-        //         type: 'reply',
-        //         reply: {
-        //             id: `${accion}_cita_${cita.fecha}_${cita.horario}`,
-        //             title: `${cita.fecha} ${cita.horario}`
-        //         }
-        //     }))
-        // );
     } catch (error) {
         console.error('Error sending citas cliente buttons:', error);
     }
