@@ -7,7 +7,6 @@ const AgendaModel = require('./models/AgendaModel');
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
     retryWrites: true,
