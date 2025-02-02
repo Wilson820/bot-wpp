@@ -6,23 +6,23 @@ const mongoose = require('mongoose');
 const AgendaModel = require('./models/AgendaModel');
 
 // Conexión a MongoDB
-// mongoose.connect(process.env.MONGODB_URI, {
-//     useUnifiedTopology: true,
-//     serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
-//     retryWrites: true,
-//     w: 'majority'
-// })
-// .then(() => console.log('Conectado a MongoDB Atlas'))
-// .catch((error) => {
-//     console.error('Error conectando a MongoDB:', error);
-//     // Opcional: Implementar una estrategia de reconexión
-//     setTimeout(() => {
-//         mongoose.connect(process.env.MONGODB_URI, {
-//             useNewUrlParser: true,
-//             useUnifiedTopology: true
-//         });
-//     }, 5000);
-// });
+mongoose.connect(process.env.MONGODB_URI, {
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout de 5 segundos
+    retryWrites: true,
+    w: 'majority'
+})
+.then(() => console.log('Conectado a MongoDB Atlas'))
+.catch((error) => {
+    console.error('Error conectando a MongoDB:', error);
+    // Opcional: Implementar una estrategia de reconexión
+    setTimeout(() => {
+        mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+    }, 5000);
+});
 
 // Manejar eventos de conexión
 mongoose.connection.on('disconnected', () => {
